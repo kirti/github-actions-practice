@@ -75,3 +75,54 @@ mkdir -p .github/workflows
 
 # Create the workflow file
 touch .github/workflows/nodejs-ci.yml
+
+
+## 🔷 Example 1: Simple Node.js CI
+
+### **Purpose**
+Basic continuous integration workflow that runs on every push and pull request.
+
+### **What It Does**
+1. Checks out the code
+2. Sets up Node.js environment
+3. Installs dependencies
+4. Runs tests
+5. Builds the project
+
+### **Workflow File: `.github/workflows/nodejs-ci.yml`**
+
+```yaml
+name: Node.js CI
+
+on:
+  push:
+    branches: [ master, feature/github-actions-practice ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm test -- --passWithNoTests --watchAll=false
+    
+    - name: Build project
+      run: npm run build
+```
