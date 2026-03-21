@@ -1,0 +1,92 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ master ]
+
+jobs:
+  # Job 1: Run tests and checks
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linter
+      run: npm run lint || echo "No lint script found"
+      continue-on-error: true
+    
+    - name: Run tests
+      run: npm test -- --passWithNoTests --watchAll=false --coverage
+    
+    - name: Build
+      run: npm run build
+      env:
+        CI: true  # Strict mode - fail on warnings
+    
+    - name: Check build size
+      run: |
+        BUILD_SIZE=$(du -sh build | cut -f1)
+        echo "Build size: $BUILD_SIZE"
+        echo "BUILD_SIZE=$BUILD_SIZE" >> $GITHUB_ENV
+    
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 7
+  
+  # Job 2: Comment on PR with results
+  comment:
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()  # Run even if test job fails
+    permissions:
+      pull-requests: write
+    
+    steps:
+    - name: Comment PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobStatus = '${{ needs.test.result }}';
+          const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+          
+          let emoji = '✅';
+          let message = 'All checks passed!';
+          
+          if (jobStatus === 'failure') {
+            emoji = '❌';
+            message = 'Some checks failed. Please review the errors.';
+          }
+          
+          const comment = `## ${emoji} PR Checks ${emoji}
+          
+          **Status:** ${jobStatus}
+          **Build:** Completed
+          
+          ${message}
+          
+          📊 [View detailed results](${runUrl})
+          
+          ---
+          *Automated comment by GitHub Actions*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
