@@ -3,19 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "https://kirti.github.io/github-actions-practice",
-  "contributors": [
-    "Kirti <119587+kirti@users.noreply.github.com>"
-  ],
-  "maintainers": [
-    "Kirti <119587+kirti@users.noreply.github.com>"
-  ],
+  "author": "Kirti",
   "repository": {
     "type": "git",
     "url": "https://github.com/kirti/github-actions-practice.git"
-  },
-  "bugs": {
-    "url": "https://github.com/kirti/github-actions-practice/issues",
-    "email": "119587+kirti@users.noreply.github.com"
   },
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
