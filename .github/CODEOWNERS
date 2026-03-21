@@ -1,0 +1,7 @@
+# kirti owns everything
+* @kirti
+
+# Specific ownership
+/.github/workflows/ @kirti
+/src/ @kirti
+*.md @kirti
