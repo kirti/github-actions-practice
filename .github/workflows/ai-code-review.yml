@@ -67,12 +67,12 @@ jobs:
               model: 'gpt-3.5-turbo',
               messages: [{
                 role: 'system',
-                content: 'You are an expert code reviewer. Review the code for: bugs, security issues, performance problems, best practices, and code quality. Be concise and specific. Focus on important issues only.'
+                content: 'You are an expert code reviewer. For each issue found, provide: 1) Issue description, 2) Why it matters, 3) Specific code fix with BEFORE and AFTER examples. Format each issue clearly with the file line reference if possible. Focus on: bugs, security, performance, best practices, accessibility, and React-specific issues.'
               }, {
                 role: 'user',
-                content: 'Review this ' + file + ':\n\n```javascript\n' + content.slice(0, 3000) + '\n```'
+                content: 'Review this code from ' + file + ' and provide specific fixes:\n\n```javascript\n' + content.slice(0, 3000) + '\n```\n\nFor each issue, show:\n- Issue: [description]\n- Why: [explanation]\n- Fix: [before/after code example]'
               }],
-              max_tokens: 500,
+              max_tokens: 1000,
               temperature: 0.3
             });
             
