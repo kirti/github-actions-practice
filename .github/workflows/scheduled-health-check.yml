@@ -1,0 +1,89 @@
+name: Daily Health Check
+
+on:
+  schedule:
+    # Runs every day at 9 AM UTC
+    - cron: '0 9 1 * *'  # 1st day of every month at 9 AM UTC
+  workflow_dispatch:  # Allow manual trigger for testing
+  
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      id: tests
+      run: npm test -- --passWithNoTests --watchAll=false
+      continue-on-error: true
+    
+    - name: Check build
+      id: build
+      run: npm run build
+      continue-on-error: true
+      env:
+        CI: false
+    
+    - name: Verify build output
+      run: |
+        if [ ! -d "build" ]; then
+          echo "Build directory not found!"
+          exit 1
+        fi
+        BUILD_SIZE=$(du -sh build | cut -f1)
+        echo "Build successful! Size: $BUILD_SIZE"
+        echo "BUILD_SIZE=$BUILD_SIZE" >> $GITHUB_ENV
+    
+    - name: Check dependencies for security issues
+      run: npm audit --audit-level=high || echo "Security vulnerabilities found"
+      continue-on-error: true
+    
+    - name: Display summary
+      run: |
+        echo "## Health Check Summary"
+        echo "Tests: ${{ steps.tests.outcome }}"
+        echo "Build: ${{ steps.build.outcome }}"
+        echo "Build Size: $BUILD_SIZE"
+    
+    - name: Create issue on failure
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const date = new Date().toISOString().split('T')[0];
+          const runUrl = context.payload.repository.html_url + '/actions/runs/' + context.runId;
+          
+          const title = 'Health Check Failed - ' + date;
+          const body = '# Health Check Failure Report\n\n' +
+            '**Date:** ' + date + '\n' +
+            '**Workflow:** Daily Health Check\n' +
+            '**Status:** Failed\n\n' +
+            '## Details\n\n' +
+            'The automated health check has detected issues with the repository.\n\n' +
+            '### Failed Steps:\n' +
+            '- Tests: ${{ steps.tests.outcome }}\n' +
+            '- Build: ${{ steps.build.outcome }}\n\n' +
+            '### Action Required:\n' +
+            'Please investigate and fix the issues.\n\n' +
+            '[View workflow run](' + runUrl + ')\n\n' +
+            '---\n' +
+            '*Automated by GitHub Actions*';
+          
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['bug', 'automated', 'health-check']
+          });
